@@ -1,22 +1,29 @@
-default : servudp cliudp servbeuip clibeuip creme.o biceps
+CC = gcc
+# la moindre alerte de compilation bloquera la génération
+CFLAGS = -Wall -Werror
+# readline pour l'invite de commande, pthread pour le multi-threading
+LDFLAGS = -lreadline -lpthread
 
-cliudp : cliudp.c
-	cc -Wall -o cliudp cliudp.c
+SRC = biceps.c gescom.c servbeuip.c creme.c
+OBJ = $(SRC:.c=.o)
 
-servudp : servudp.c
-	cc -Wall -o servudp servudp.c
+default: biceps
 
-servbeuip : servbeuip.c
-	cc -Wall -o servbeuip servbeuip.c
+biceps: $(OBJ)
+	$(CC) $(CFLAGS) -o $@ $^ $(LDFLAGS)
 
-clibeuip : clibeuip.c
-	cc -Wall -o clibeuip clibeuip.c
+%.o: %.c
+	$(CC) $(CFLAGS) -c $< -o $@
 
-creme.o : creme.c creme.h
-	cc -Wall -c creme.c
+# Cible spécifique pour traquer les fuites mémoire avec Valgrind
+# On désactive les optimisations (-O0) et on ajoute les symboles de débogage (-g)
+memory-leak: CFLAGS += -g -O0
+memory-leak: $(SRC:.c=.o-leak)
+	$(CC) $(CFLAGS) -o biceps-memory-leaks $^ $(LDFLAGS)
 
-biceps : biceps.c gescom.c gescom.h creme.o
-	cc -Wall -o biceps biceps.c gescom.c creme.o -lreadline
+%.o-leak: %.c
+	$(CC) $(CFLAGS) -c $< -o $@
 
-clean :
-	rm -f cliudp servudp servbeuip clibeuip biceps *.o
+# Nettoyage complet du dépôt pour ne laisser que le code source
+clean:
+	rm -f biceps biceps-memory-leaks *.o *.o-leak
